@@ -307,5 +307,5 @@ function removeSocket(id){
       
 }
 
-
-httpServer.listen(4000);
+const PORT = process.env.PORT || 4000
+httpServer.listen(PORT);
