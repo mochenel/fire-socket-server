@@ -5,14 +5,38 @@ const io = require("socket.io")(httpServer, {
   }
 });
 
-let DANGER = [10,25,30,40,60,62,63,65,70,80,90,98];
+let DANGER = [10,13,25,30,40,60,62,63,65,70,80,90,98];
 let GamesInProgress = [];
 let Restart = [];
 let pending = [];
 let Turn = [];
 
 io.on("connection", (socket) => {
- 
+
+  socket.on('exit',function(data){
+    console.log(data)
+  let {id,username} = data;
+  if (id != '' && username != '') {
+    let res = GamesInProgress.find((item)=>item.id == id);
+    let resp = pending.find((item)=>item.ID == id);
+  
+    if(res != undefined || res != null){
+      console.log(res)
+    let p1 = res.player1.socketID;
+    let p2 = res.player2.socketID;
+    io.to(p1).emit('exit',username);
+    io.to(p2).emit('exit',username);
+
+    }
+    else if(resp != undefined || resp != null){
+      io.to(resp.SOCKETID).emit('exit','k15')
+    }
+   removeSocket(id);
+    
+
+  }
+
+ })
   socket.on("join",function (data) {
 
   	let id = data.gameID;
@@ -114,6 +138,7 @@ io.on("connection", (socket) => {
   		"prevPlayerSquareNumber":0,
   		"prevOpponentSquareNumber":0
   	}
+
 
   	if(socketID == p1){
   		if(squareId == 6){
@@ -263,6 +288,23 @@ function isUsernameInProgress(id,username){
 		return false;
 	}
 	return true;
+}
+function removeSocket(id){
+  let pend = pending.find((item)=>item.ID == id);
+  let progress = GamesInProgress.find((item)=>item.id == id);
+
+  let index1 = pending.indexOf(pend);
+  let index2 = GamesInProgress.indexOf(progress);
+
+    if(index1 != -1){
+      
+      pending.splice(index1,1);
+    }
+    if(index2 != -1){
+      GamesInProgress.splice(index2,1);
+
+    }
+      
 }
 
 
