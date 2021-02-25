@@ -5,23 +5,66 @@ const io = require("socket.io")(httpServer, {
   }
 });
 
-let DANGER = [10,13,25,30,40,60,62,63,65,70,80,90,98];
+let DANGER = [13,25,30,40,60,65,70,80,90,98];
 let GamesInProgress = [];
 let Restart = [];
 let pending = [];
 let Turn = [];
+let chats = [];
 
 io.on("connection", (socket) => {
 
+socket.on('disconnect', () =>{
+  let res = GamesInProgress.find((item)=>item.player1.socketID == socket.id || item.player2.socketID == socket.id );
+  if(res != undefined || res != null){
+
+    let username;
+    let p1 = res.player1.socketID;
+    let p2 = res.player2.socketID;
+
+    if(res.player1.socketID == socket.id){
+      username = res.player1.username;
+    }
+    else{
+       username = res.player2.username;
+    }
+
+    io.to(p1).emit('exit',username);
+    io.to(p2).emit('exit',username);
+    removeSocket(res.id);
+  }
+
+});
+  socket.on('chat',function(data){
+ 
+      let {id,username,text} = data;
+      if (id != '' && username != '') {
+        let res = GamesInProgress.find((item)=>item.id == id);
+
+        if(res != undefined || res != null){
+          let p1 = res.player1.socketID;
+          let p2 = res.player2.socketID;
+          let chatData = {
+            "id":id,
+            "username":username,
+            "text":text
+          }
+          io.to(p1).emit('chat',chatData);
+          io.to(p2).emit('chat',chatData);
+        }
+    }
+
+  })
+
   socket.on('exit',function(data){
-    console.log(data)
+
   let {id,username} = data;
   if (id != '' && username != '') {
     let res = GamesInProgress.find((item)=>item.id == id);
     let resp = pending.find((item)=>item.ID == id);
   
     if(res != undefined || res != null){
-      console.log(res)
+
     let p1 = res.player1.socketID;
     let p2 = res.player2.socketID;
     io.to(p1).emit('exit',username);
@@ -129,7 +172,8 @@ io.on("connection", (socket) => {
   		"playerSquareNumber":'',
   		"opponentSquareNumber":'',
   		"prevPlayerSquareNumber":0,
-  		"prevOpponentSquareNumber":0
+  		"prevOpponentSquareNumber":0,
+      
   	}
 
   	let boardData2 = {
@@ -306,6 +350,9 @@ function removeSocket(id){
     }
       
 }
+
+
+
 
 const PORT = process.env.PORT || 4000
 httpServer.listen(PORT);
